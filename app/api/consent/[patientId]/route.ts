@@ -5,9 +5,10 @@ const consentStore = new Map<string, Consent>();
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { patientId: string } },
+  context: { params: Promise<{ patientId: string }> },
 ) {
-  const consent = consentStore.get(params.patientId);
+  const { patientId } = await context.params;
+  const consent = consentStore.get(patientId);
 
   if (!consent) {
     return NextResponse.json({ consentStatus: false });
@@ -18,18 +19,19 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { patientId: string } },
+  context: { params: Promise<{ patientId: string }> },
 ) {
   try {
     const body = (await request.json()) as Partial<Consent>;
+    const { patientId } = await context.params;
     const newConsent: Consent = {
       consentId: crypto.randomUUID(),
-      patientId: params.patientId,
+      patientId,
       consentDate: new Date().toISOString(),
       method: body.method ?? "written",
     };
 
-    consentStore.set(params.patientId, newConsent);
+    consentStore.set(patientId, newConsent);
 
     return NextResponse.json({ consent: newConsent }, { status: 201 });
   } catch (error) {
